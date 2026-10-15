@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+/* Tokens de diseño. La dirección visual definitiva está pendiente; cambiar aquí, no en los componentes. */
+@theme {
+  --font-sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+
+  --color-papel: #f6f2ea;
+  --color-tarjeta: #fffdf8;
+  --color-tinta: #1d2230;
+  --color-tinta-suave: #5b6272;
+  --color-linea: #ded7c8;
+  --color-marca: #c2410c;
+  --color-marca-oscuro: #9a3412;
+  --color-error: #b42318;
+  --color-error-fondo: #fdecea;
+  --color-ok: #166534;
+  --color-aviso: #8a5a00;
+  --color-aviso-fondo: #fff4dc;
+
+  /* Entrada del panel del asistente (se desactiva con prefers-reduced-motion vía `motion-safe:`). */
+  --animate-panel-in: panel-in 0.16s ease-out;
+  @keyframes panel-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--color-papel);
+  color: var(--color-tinta);
+  font-family: var(--font-sans);
+}
+
+/* Tailwind v4 deja los botones con cursor por defecto; aquí se restablece el puntero. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  select:not(:disabled),
+  label:has(input[type="radio"]:not(:disabled)),
+  input[type="radio"]:not(:disabled),
+  input[type="search"]::-webkit-search-cancel-button {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  input:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+}
