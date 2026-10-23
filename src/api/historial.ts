@@ -1,9 +1,10 @@
 import { TIPOS_CLIENTE, TIPOS_ENVIO } from '../types.ts'
 import type { RegistroHistorial } from '../types.ts'
-import { ApiError, TIMEOUT_MS } from './cotizar.ts'
+import { ApiError, codigoDeError, TIMEOUT_MS } from './cotizar.ts'
 
 /**
- * Historial de cotizaciones: GET <VITE_API_URL>?action=getHistorial
+ * Historial de cotizaciones: GET <VITE_API_URL>?action=getHistorial&token=<VITE_HISTORIAL_TOKEN>
+ * El token del historial es una clave fija de la API (no el token de sesión del login).
  * Respuesta verificada: { success, totalRegistros, data: [{ fechaHora, peso, tipoCliente,
  * tipoEnvio, totalUSD, estado }] } con `estado` EXITOSO | RECHAZADO.
  */
@@ -34,7 +35,7 @@ export function normalizarHistorial(json: unknown): RegistroHistorial[] {
   if (!esObjeto(json)) throw new ApiError('La API devolvió una respuesta inesperada.')
   if (json.success === false) {
     const mensaje = typeof json.mensaje === 'string' ? json.mensaje : null
-    throw new ApiError(mensaje ?? 'No se pudo obtener el historial.')
+    throw new ApiError(mensaje ?? 'No se pudo obtener el historial.', codigoDeError(json))
   }
   if (!Array.isArray(json.data)) {
     throw new ApiError('La respuesta de la API no incluye el historial.')
@@ -48,11 +49,14 @@ export function normalizarHistorial(json: unknown): RegistroHistorial[] {
 export async function listarHistorial(signal?: AbortSignal): Promise<RegistroHistorial[]> {
   const base = import.meta.env.VITE_API_URL
   if (!base) throw new ApiError('Falta configurar VITE_API_URL (ver .env.example).')
+  const tokenHistorial = import.meta.env.VITE_HISTORIAL_TOKEN
+  if (!tokenHistorial) throw new ApiError('Falta configurar VITE_HISTORIAL_TOKEN (ver .env.example).')
 
   let respuesta: Response
   try {
     const url = new URL(base)
     url.searchParams.set('action', 'getHistorial')
+    url.searchParams.set('token', tokenHistorial)
     respuesta = await fetch(url, { signal: signal ?? AbortSignal.timeout(TIMEOUT_MS) })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error

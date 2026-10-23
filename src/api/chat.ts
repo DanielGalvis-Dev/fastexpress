@@ -1,10 +1,11 @@
+import { esCodigoSesionInvalida, notificarSesionInvalida, obtenerToken } from '../lib/sesion.ts'
 import { TIMEOUT_CHAT_MS } from './config.ts'
 
 /**
  * Cliente del asistente de IA. Contrato: docs/ESPECIFICACION_BACKEND_ASISTENTE_IA.md (§3).
  *
  * POST <VITE_API_URL> con `Content-Type: text/plain` y el JSON como texto:
- *   { action: "chat", sesionId, mensaje, historial: [{ rol, texto }] }
+ *   { action: "chat", sesionId, mensaje, historial: [{ rol, texto }], token }
  * → { success: true, tipo, respuesta }  |  { success: false, codigo, mensaje, reintentarEnSeg? }
  *
  * Modo de uso (variable VITE_CHAT): "mock" (respuestas de demostración, sin backend),
@@ -91,6 +92,7 @@ export function normalizarRespuestaChat(json: unknown): RespuestaChat {
       typeof json.codigo === 'string' && CODIGOS.includes(json.codigo)
         ? (json.codigo as CodigoErrorChat)
         : undefined
+    if (esCodigoSesionInvalida(json.codigo)) notificarSesionInvalida()
     const espera =
       typeof json.reintentarEnSeg === 'number' && json.reintentarEnSeg > 0
         ? json.reintentarEnSeg
@@ -128,7 +130,7 @@ export async function enviarMensaje(
       method: 'POST',
       // text/plain evita el preflight CORS, que Apps Script no soporta.
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action: 'chat', ...solicitud }),
+      body: JSON.stringify({ action: 'chat', ...solicitud, token: obtenerToken() }),
       signal: signal ?? AbortSignal.timeout(TIMEOUT_CHAT_MS),
     })
   } catch (error) {

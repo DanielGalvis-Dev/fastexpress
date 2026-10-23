@@ -1,10 +1,12 @@
+import { esCodigoSesionInvalida, notificarSesionInvalida, obtenerToken } from '../lib/sesion.ts'
 import type { ResultadoCotizacion, SolicitudCotizacion } from '../types.ts'
 
 /**
  * Cliente de la API de cotización (Google Apps Script).
  *
  * Contrato (tomado del index.html de prueba del equipo, que ya funciona contra la API):
- *  - POST a VITE_API_URL con el JSON como texto: { peso, tipoCliente, tipoEnvio }.
+ *  - POST a VITE_API_URL con el JSON como texto: { peso, tipoCliente, tipoEnvio, token }.
+ *    `token` es el de la sesión iniciada (ver api/auth.ts).
  *  - Éxito: { success: true, desglose: { tarifaBase, costoPeso, subtotal,
  *    descuentoAplicado, recargoAplicado, total } }.
  *  - Rechazo/error: { success: false, mensaje }.
@@ -14,14 +16,26 @@ import type { ResultadoCotizacion, SolicitudCotizacion } from '../types.ts'
 export const TIMEOUT_MS = 20_000
 
 export class ApiError extends Error {
-  constructor(mensaje: string) {
+  /** Código de error de la API (p. ej. PESO_INVALIDO, SESION_INVALIDA), si lo trae. */
+  codigo?: string
+
+  constructor(mensaje: string, codigo?: string) {
     super(mensaje)
     this.name = 'ApiError'
+    this.codigo = codigo
   }
 }
 
+/** Lee `codigo` de una respuesta de error; si indica sesión inválida, avisa a la app. */
+export function codigoDeError(json: Record<string, unknown>): string | undefined {
+  const codigo = typeof json.codigo === 'string' ? json.codigo : undefined
+  if (esCodigoSesionInvalida(codigo)) notificarSesionInvalida()
+  return codigo
+}
+
 function construirCuerpo(solicitud: SolicitudCotizacion): string {
-  return JSON.stringify(solicitud)
+  // Sin sesión, `token` es undefined y JSON.stringify lo omite.
+  return JSON.stringify({ ...solicitud, token: obtenerToken() })
 }
 
 type Json = Record<string, unknown>
@@ -40,7 +54,7 @@ export function normalizarRespuesta(json: unknown): ResultadoCotizacion {
   }
   if (json.success === false) {
     const mensaje = typeof json.mensaje === 'string' ? json.mensaje : null
-    throw new ApiError(mensaje ?? 'La API rechazó la cotización.')
+    throw new ApiError(mensaje ?? 'La API rechazó la cotización.', codigoDeError(json))
   }
 
   const d = esObjeto(json.desglose) ? json.desglose : undefined

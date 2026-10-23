@@ -1,14 +1,29 @@
 import { useCallback, useRef, useState } from 'react'
+import { cerrarSesion } from './api/auth.ts'
 import { modoChat } from './api/chat.ts'
+import { CambiarPasswordForm } from './components/CambiarPasswordForm.tsx'
 import { ChatWidget } from './components/ChatWidget.tsx'
 import { CotizadorForm } from './components/CotizadorForm.tsx'
 import { HistorialList } from './components/HistorialList.tsx'
+import { MenuUsuario } from './components/MenuUsuario.tsx'
 import { Modal } from './components/Modal.tsx'
-import { confirmar, hayConfirmacionAbierta } from './lib/alertas.ts'
+import { PantallaAuth } from './components/PantallaAuth.tsx'
+import { avisar, confirmar, hayConfirmacionAbierta } from './lib/alertas.ts'
+import { useSesion } from './lib/useSesion.ts'
+import type { Sesion } from './types.ts'
 
+/** Sin sesión solo se ve el ingreso; con sesión, la lista de cotizaciones. */
 export default function App() {
+  const { sesion } = useSesion()
+  return sesion ? <Principal sesion={sesion} /> : <PantallaAuth />
+}
+
+function Principal({ sesion }: { sesion: Sesion }) {
+  const { salir } = useSesion()
   const chat = modoChat()
   const [modalAbierto, setModalAbierto] = useState(false)
+  const [passwordAbierto, setPasswordAbierto] = useState(false)
+  const passwordSucio = useRef(false)
   const [versionHistorial, setVersionHistorial] = useState(0)
   // En móvil el chat ocupa toda la pantalla: lo que queda debajo no debe recibir foco ni lectura.
   const [chatTapaTodo, setChatTapaTodo] = useState(false)
@@ -53,10 +68,57 @@ export default function App() {
     formularioSucio.current = sucio
   }, [])
 
+  const abrirPassword = () => {
+    passwordSucio.current = false
+    setPasswordAbierto(true)
+  }
+
+  const cerrarPassword = () => {
+    passwordSucio.current = false
+    setPasswordAbierto(false)
+  }
+
+  async function solicitarCierrePassword() {
+    if (!passwordSucio.current) return cerrarPassword()
+    if (hayConfirmacionAbierta()) return
+
+    const cerrar = await confirmar({
+      titulo: '¿Cerrar sin guardar?',
+      texto: 'No se cambiará tu contraseña.',
+      confirmar: 'Sí, cerrar',
+      cancelar: 'Seguir editando',
+      icono: 'warning',
+    })
+    if (cerrar) cerrarPassword()
+  }
+
+  const alCambiarSuciaPassword = useCallback((sucio: boolean) => {
+    passwordSucio.current = sucio
+  }, [])
+
+  /** Cierra la sesión en la API y, pase lo que pase con la red, en este navegador. */
+  async function pedirCierreSesion() {
+    if (hayConfirmacionAbierta()) return
+    const cerrar = await confirmar({
+      titulo: '¿Cerrar sesión?',
+      confirmar: 'Sí, cerrar sesión',
+      cancelar: 'Cancelar',
+    })
+    if (!cerrar) return
+
+    try {
+      await cerrarSesion(sesion.token)
+    } catch {
+      // Si la API no responde, igual se descarta la sesión local: el token vence solo.
+    }
+    salir()
+    avisar('info', 'Sesión cerrada')
+  }
+
   return (
     <>
       {/* h-dvh + overflow-hidden: la página nunca hace scroll; la lista se pagina para caber. */}
-      <div inert={modalAbierto} className="h-dvh overflow-hidden">
+      <div inert={modalAbierto || passwordAbierto} className="h-dvh overflow-hidden">
         <main inert={chatTapaTodo} className="mx-auto flex h-full max-w-5xl flex-col gap-4 px-4 py-4 sm:py-6">
           <header className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -103,6 +165,11 @@ export default function App() {
                 <span className="sm:hidden">Nueva</span>
                 <span className="hidden sm:inline">Nueva cotización</span>
               </button>
+              <MenuUsuario
+                usuario={sesion.usuario}
+                onCambiarPassword={abrirPassword}
+                onCerrarSesion={pedirCierreSesion}
+              />
             </div>
           </header>
 
@@ -121,6 +188,10 @@ export default function App() {
           onCerrar={cerrarModal}
           onSucio={alCambiarSucio}
         />
+      </Modal>
+
+      <Modal abierto={passwordAbierto} titulo="Cambiar contraseña" onCerrar={solicitarCierrePassword}>
+        <CambiarPasswordForm onCambiada={cerrarPassword} onSucio={alCambiarSuciaPassword} />
       </Modal>
     </>
   )

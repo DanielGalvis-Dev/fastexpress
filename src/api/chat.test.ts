@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { EVENTO_SESION_INVALIDA, guardarSesion } from '../lib/sesion.ts'
 import { ChatError, enviarMensaje, modoChat, normalizarRespuestaChat } from './chat.ts'
 import { responderMock } from './chatMock.ts'
 
@@ -90,6 +91,52 @@ describe('enviarMensaje con la API real', () => {
     expect(opciones.method).toBe('POST')
     expect(opciones.headers['Content-Type']).toBe('text/plain;charset=utf-8')
     expect(JSON.parse(opciones.body)).toEqual({ action: 'chat', ...solicitud })
+  })
+
+  it('con sesión iniciada, agrega el token al cuerpo', async () => {
+    guardarSesion({
+      token: 'tok-123',
+      expiraEn: new Date(Date.now() + 3_600_000).toISOString(),
+      usuario: { id: 'u1', nombre: 'Ana', email: 'ana@correo.com', creadoEn: '', ultimoLogin: '' },
+    })
+    const fetchMock = vi.fn().mockResolvedValue({
+      json: async () => ({ success: true, tipo: 'saludo', respuesta: 'Hola' }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    await enviarMensaje(solicitud)
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ action: 'chat', ...solicitud, token: 'tok-123' })
+    localStorage.clear()
+  })
+
+  it('un rechazo SESION_INVALIDA avisa a la app', async () => {
+    const escucha = vi.fn()
+    window.addEventListener(EVENTO_SESION_INVALIDA, escucha)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        json: async () => ({ success: false, codigo: 'SESION_INVALIDA', mensaje: 'Sesión inválida o expirada.' }),
+      }),
+    )
+
+    await expect(enviarMensaje(solicitud)).rejects.toThrow('Sesión inválida o expirada.')
+    window.removeEventListener(EVENTO_SESION_INVALIDA, escucha)
+    expect(escucha).toHaveBeenCalledTimes(1)
+  })
+
+  it('un error del asistente (aunque su texto diga «token») no se confunde con una sesión inválida', async () => {
+    const escucha = vi.fn()
+    window.addEventListener(EVENTO_SESION_INVALIDA, escucha)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        json: async () => ({ success: false, codigo: 'IA_NO_DISPONIBLE', mensaje: 'Token de IA agotado' }),
+      }),
+    )
+
+    await expect(enviarMensaje(solicitud)).rejects.toMatchObject({ codigo: 'IA_NO_DISPONIBLE' })
+    window.removeEventListener(EVENTO_SESION_INVALIDA, escucha)
+    expect(escucha).not.toHaveBeenCalled()
   })
 
   it('traduce un fallo de red a un mensaje claro', async () => {

@@ -28,6 +28,22 @@ export interface RegistroHistorial {
   estado: EstadoCotizacion
 }
 
+/** Persona autenticada, tal como la devuelve la API en `register` y `login`. */
+export interface Usuario {
+  id: string
+  nombre: string
+  email: string
+  creadoEn: string
+  ultimoLogin: string
+}
+
+/** Sesión devuelta por `login`; `expiraEn` es una fecha ISO. */
+export interface Sesion {
+  token: string
+  expiraEn: string
+  usuario: Usuario
+}
+
 export interface DesgloseCotizacion {
   tarifaBase?: number
   costoPeso?: number

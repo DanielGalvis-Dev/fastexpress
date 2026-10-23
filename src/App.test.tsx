@@ -1,15 +1,45 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App.tsx'
+import { SesionProvider } from './lib/SesionProvider.tsx'
+import { guardarSesion, notificarSesionInvalida } from './lib/sesion.ts'
+import type { Sesion } from './types.ts'
 
-const { listarMock, cotizarMock, confirmarMock, avisarMock } = vi.hoisted(() => ({
-  listarMock: vi.fn(),
-  cotizarMock: vi.fn(),
-  confirmarMock: vi.fn(),
-  avisarMock: vi.fn(),
+const { listarMock, cotizarMock, confirmarMock, avisarMock, cerrarSesionMock, cambiarPasswordMock } =
+  vi.hoisted(() => ({
+    listarMock: vi.fn(),
+    cotizarMock: vi.fn(),
+    confirmarMock: vi.fn(),
+    avisarMock: vi.fn(),
+    cerrarSesionMock: vi.fn(),
+    cambiarPasswordMock: vi.fn(),
+  }))
+
+const SESION: Sesion = {
+  token: 'tok-123',
+  expiraEn: new Date(Date.now() + 8 * 3_600_000).toISOString(),
+  usuario: {
+    id: 'u1',
+    nombre: 'Ana Pérez',
+    email: 'ana@correo.com',
+    creadoEn: '2026-10-22T01:29:31.974Z',
+    ultimoLogin: '2026-10-22T01:32:53.116Z',
+  },
+}
+
+const renderApp = () =>
+  render(
+    <SesionProvider>
+      <App />
+    </SesionProvider>,
+  )
+
+vi.mock('./api/auth.ts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./api/auth.ts')>()),
+  cerrarSesion: cerrarSesionMock,
+  cambiarPassword: cambiarPasswordMock,
 }))
-
 vi.mock('./api/historial.ts', () => ({ listarHistorial: listarMock }))
 vi.mock('./api/cotizar.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./api/cotizar.ts')>()),
@@ -27,8 +57,120 @@ describe('App', () => {
     cotizarMock.mockReset()
     confirmarMock.mockReset()
     avisarMock.mockReset()
+    cerrarSesionMock.mockReset()
+    cambiarPasswordMock.mockReset()
     confirmarMock.mockResolvedValue(true)
     listarMock.mockResolvedValue([])
+    // Casi todas las pruebas parten de una sesión iniciada.
+    localStorage.clear()
+    guardarSesion(SESION)
+  })
+
+  afterEach(() => localStorage.clear())
+
+  describe('sesión', () => {
+    it('sin sesión muestra el ingreso y no consulta el historial', () => {
+      localStorage.clear()
+      renderApp()
+
+      expect(screen.getByTestId('login-btn')).toBeInTheDocument()
+      expect(screen.queryByTestId('nueva-cotizacion-btn')).not.toBeInTheDocument()
+      expect(listarMock).not.toHaveBeenCalled()
+    })
+
+    it('con una sesión vencida guardada, muestra el ingreso', () => {
+      guardarSesion({ ...SESION, expiraEn: new Date(Date.now() - 1000).toISOString() })
+      renderApp()
+
+      expect(screen.getByTestId('login-btn')).toBeInTheDocument()
+      expect(localStorage.getItem('fastexpress.sesion')).toBeNull()
+    })
+
+    it('con sesión muestra la lista y el menú con el nombre y el correo', async () => {
+      const user = userEvent.setup()
+      renderApp()
+      await screen.findByTestId('historial-vacio')
+
+      await user.click(screen.getByTestId('usuario-menu-btn'))
+      expect(screen.getByTestId('usuario-nombre')).toHaveTextContent('Ana Pérez')
+      expect(screen.getByTestId('usuario-email')).toHaveTextContent('ana@correo.com')
+    })
+
+    it('cerrar sesión pide confirmación, llama a la API con el token y vuelve al ingreso', async () => {
+      cerrarSesionMock.mockResolvedValue('Sesión cerrada.')
+      const user = userEvent.setup()
+      renderApp()
+      await screen.findByTestId('historial-vacio')
+
+      await user.click(screen.getByTestId('usuario-menu-btn'))
+      await user.click(screen.getByTestId('cerrar-sesion-btn'))
+
+      expect(confirmarMock).toHaveBeenCalledWith(expect.objectContaining({ titulo: '¿Cerrar sesión?' }))
+      await waitFor(() => expect(cerrarSesionMock).toHaveBeenCalledWith('tok-123'))
+      expect(await screen.findByTestId('login-btn')).toBeInTheDocument()
+      expect(localStorage.getItem('fastexpress.sesion')).toBeNull()
+    })
+
+    it('si la persona cancela la confirmación, la sesión sigue activa', async () => {
+      confirmarMock.mockResolvedValue(false)
+      const user = userEvent.setup()
+      renderApp()
+      await screen.findByTestId('historial-vacio')
+
+      await user.click(screen.getByTestId('usuario-menu-btn'))
+      await user.click(screen.getByTestId('cerrar-sesion-btn'))
+
+      await waitFor(() => expect(confirmarMock).toHaveBeenCalled())
+      expect(cerrarSesionMock).not.toHaveBeenCalled()
+      expect(screen.getByTestId('nueva-cotizacion-btn')).toBeInTheDocument()
+    })
+
+    it('si la API falla al cerrar sesión, igual se cierra en este navegador', async () => {
+      cerrarSesionMock.mockRejectedValue(new Error('sin red'))
+      const user = userEvent.setup()
+      renderApp()
+      await screen.findByTestId('historial-vacio')
+
+      await user.click(screen.getByTestId('usuario-menu-btn'))
+      await user.click(screen.getByTestId('cerrar-sesion-btn'))
+
+      expect(await screen.findByTestId('login-btn')).toBeInTheDocument()
+      expect(localStorage.getItem('fastexpress.sesion')).toBeNull()
+    })
+
+    it('un token rechazado por la API (evento) devuelve al ingreso con un aviso', async () => {
+      renderApp()
+      await screen.findByTestId('historial-vacio')
+
+      act(() => notificarSesionInvalida())
+
+      expect(await screen.findByTestId('login-btn')).toBeInTheDocument()
+      expect(avisarMock).toHaveBeenCalledWith('info', 'Tu sesión venció. Vuelve a ingresar.')
+    })
+
+    it('cambiar contraseña abre el formulario con el token de la sesión y lo cierra al terminar', async () => {
+      cambiarPasswordMock.mockResolvedValue('Contraseña actualizada.')
+      const user = userEvent.setup()
+      renderApp()
+      await screen.findByTestId('historial-vacio')
+
+      await user.click(screen.getByTestId('usuario-menu-btn'))
+      await user.click(screen.getByTestId('cambiar-password-abrir'))
+      await user.type(screen.getByTestId('cambiar-password-actual-input'), 'abc12')
+      await user.type(screen.getByTestId('cambiar-password-nueva-input'), 'nueva123')
+      await user.type(screen.getByTestId('cambiar-password-confirmacion-input'), 'nueva123')
+      await user.click(screen.getByTestId('cambiar-password-btn'))
+
+      await waitFor(() =>
+        expect(cambiarPasswordMock).toHaveBeenCalledWith({
+          token: 'tok-123',
+          actual: 'abc12',
+          nueva: 'nueva123',
+        }),
+      )
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      expect(avisarMock).toHaveBeenCalledWith('success', 'Contraseña actualizada.')
+    })
   })
 
   describe('botón «Actualizar» (ícono en la cabecera)', () => {
@@ -42,7 +184,7 @@ describe('App', () => {
     })
 
     it('es un botón de ícono con nombre accesible, junto a «Nueva cotización»', async () => {
-      render(<App />)
+      renderApp()
       await screen.findByTestId('historial-vacio')
 
       const boton = screen.getByRole('button', { name: 'Actualizar cotizaciones' })
@@ -57,7 +199,7 @@ describe('App', () => {
       listarMock.mockResolvedValueOnce([registro(1)])
       listarMock.mockReturnValueOnce(new Promise((r) => (resolver = r)))
       const user = userEvent.setup()
-      render(<App />)
+      renderApp()
       await screen.findAllByTestId('historial-fila')
 
       const boton = screen.getByTestId('historial-actualizar')
@@ -77,7 +219,7 @@ describe('App', () => {
     it('avisa cuando no hay cotizaciones nuevas', async () => {
       listarMock.mockResolvedValue([registro(1)])
       const user = userEvent.setup()
-      render(<App />)
+      renderApp()
       await screen.findAllByTestId('historial-fila')
 
       await user.click(screen.getByTestId('historial-actualizar'))
@@ -89,7 +231,7 @@ describe('App', () => {
       listarMock.mockResolvedValueOnce([registro(1)])
       listarMock.mockRejectedValueOnce(new Error('sin red'))
       const user = userEvent.setup()
-      render(<App />)
+      renderApp()
       await screen.findAllByTestId('historial-fila')
 
       await user.click(screen.getByTestId('historial-actualizar'))
@@ -98,7 +240,7 @@ describe('App', () => {
     })
 
     it('«Nueva cotización» conserva su nombre accesible completo aunque en móvil diga «Nueva»', async () => {
-      render(<App />)
+      renderApp()
       await screen.findByTestId('historial-vacio')
       expect(screen.getByRole('button', { name: 'Nueva cotización' })).toBe(screen.getByTestId('nueva-cotizacion-btn'))
     })
@@ -119,7 +261,7 @@ describe('App', () => {
         removeEventListener: () => {},
       }))
       const user = userEvent.setup()
-      render(<App />)
+      renderApp()
       await screen.findByTestId('historial-vacio')
       const principal = screen.getByRole('main')
       expect(principal).not.toHaveAttribute('inert')
@@ -134,7 +276,7 @@ describe('App', () => {
     it('en escritorio el chat flotante no deja inerte la lista', async () => {
       vi.stubEnv('VITE_CHAT', 'mock')
       const user = userEvent.setup()
-      render(<App />)
+      renderApp()
       await screen.findByTestId('historial-vacio')
 
       await user.click(screen.getByTestId('chat-lanzador'))
@@ -143,7 +285,7 @@ describe('App', () => {
 
     it('no se muestra si VITE_CHAT está vacío', async () => {
       vi.stubEnv('VITE_CHAT', '')
-      render(<App />)
+      renderApp()
       await screen.findByTestId('historial-vacio')
       expect(screen.queryByTestId('chat-lanzador')).not.toBeInTheDocument()
     })
@@ -151,7 +293,7 @@ describe('App', () => {
     it('en modo mock se muestra con el aviso de demostración', async () => {
       vi.stubEnv('VITE_CHAT', 'mock')
       const user = userEvent.setup()
-      render(<App />)
+      renderApp()
       await screen.findByTestId('historial-vacio')
 
       await user.click(screen.getByTestId('chat-lanzador'))
@@ -161,7 +303,7 @@ describe('App', () => {
     it('queda inerte mientras el modal de cotización está abierto', async () => {
       vi.stubEnv('VITE_CHAT', 'mock')
       const user = userEvent.setup()
-      render(<App />)
+      renderApp()
       await screen.findByTestId('historial-vacio')
       expect(screen.getByTestId('chat-lanzador').closest('[inert]')).toBeNull()
 
@@ -172,7 +314,7 @@ describe('App', () => {
     it('el botón «Nueva cotización» del chat cierra el panel y abre el modal', async () => {
       vi.stubEnv('VITE_CHAT', 'mock')
       const user = userEvent.setup()
-      render(<App />)
+      renderApp()
       await screen.findByTestId('historial-vacio')
 
       await user.click(screen.getByTestId('chat-lanzador'))
@@ -188,7 +330,7 @@ describe('App', () => {
   describe('cierre del modal con datos ingresados', () => {
     async function abrirConDatos() {
       const user = userEvent.setup()
-      render(<App />)
+      renderApp()
       await screen.findByTestId('historial-vacio')
       await user.click(screen.getByTestId('nueva-cotizacion-btn'))
       await user.type(screen.getByTestId('peso-input'), '5')
@@ -197,7 +339,7 @@ describe('App', () => {
 
     it('empezar a arrastrar dentro del panel y soltar fuera no cierra el modal', async () => {
       const user = userEvent.setup()
-      render(<App />)
+      renderApp()
       await screen.findByTestId('historial-vacio')
       await user.click(screen.getByTestId('nueva-cotizacion-btn'))
 
@@ -209,7 +351,7 @@ describe('App', () => {
 
     it('sin datos cierra directo, sin preguntar', async () => {
       const user = userEvent.setup()
-      render(<App />)
+      renderApp()
       await screen.findByTestId('historial-vacio')
       await user.click(screen.getByTestId('nueva-cotizacion-btn'))
       await user.click(screen.getByTestId('modal-fondo'))
@@ -271,7 +413,7 @@ describe('App', () => {
   })
 
   it('muestra la lista como vista principal y el formulario solo en el modal', async () => {
-    render(<App />)
+    renderApp()
 
     expect(await screen.findByTestId('historial-vacio')).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -280,7 +422,7 @@ describe('App', () => {
 
   it('abre el modal con el botón y lo cierra con Escape, devolviendo el foco', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderApp()
     await screen.findByTestId('historial-vacio')
 
     const boton = screen.getByTestId('nueva-cotizacion-btn')
@@ -295,7 +437,7 @@ describe('App', () => {
 
   it('cierra con la X y con clic en el fondo', async () => {
     const user = userEvent.setup()
-    render(<App />)
+    renderApp()
     await screen.findByTestId('historial-vacio')
 
     await user.click(screen.getByTestId('nueva-cotizacion-btn'))
@@ -310,7 +452,7 @@ describe('App', () => {
   it('tras cotizar muestra el resultado, refresca la lista y permite cerrar', async () => {
     cotizarMock.mockResolvedValue({ total: 13.5, desglose: { tarifaBase: 5 } })
     const user = userEvent.setup()
-    render(<App />)
+    renderApp()
     await screen.findByTestId('historial-vacio')
 
     await user.click(screen.getByTestId('nueva-cotizacion-btn'))
@@ -330,7 +472,7 @@ describe('App', () => {
   it('«Cotizar otro envío» vuelve a un formulario limpio', async () => {
     cotizarMock.mockResolvedValue({ total: 7 })
     const user = userEvent.setup()
-    render(<App />)
+    renderApp()
     await screen.findByTestId('historial-vacio')
 
     await user.click(screen.getByTestId('nueva-cotizacion-btn'))

@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Traspaso entre sesiones de Claude (solo sirve en esta máquina)
+CONTINUIDAD.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
