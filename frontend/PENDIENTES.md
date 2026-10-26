@@ -34,7 +34,7 @@ Todas son POST text/plain a la misma URL con `action`; errores `{ success: false
 
 ## Diseño
 - [ ] Dirección visual definitiva (paleta y tipografía): hoy hay tokens provisionales en `src/index.css`.
-- [ ] Instalar Impeccable en este repo (`npx impeccable install --providers=claude --scope=project --no-hooks`) y correr `/impeccable init`.
+- [ ] Instalar Impeccable en la raíz del repo (`npx impeccable install --providers=claude --scope=project --no-hooks`) y correr `/impeccable init`.
 - [ ] Revisión de accesibilidad y responsive (`/impeccable audit`) y revisión visual en navegador.
 
 ## Asistente de IA (chat estadístico con Gemini)
@@ -48,10 +48,10 @@ Especificación para Backend: `docs/ESPECIFICACION_BACKEND_ASISTENTE_IA.md`.
 - [x] Chat publicado en Vercel con `VITE_CHAT=on` (2026-10-15): https://fastexpress-frontend.vercel.app/
 
 ## Entrega y proceso
-- [x] Git inicializado y repo **privado** creado en https://github.com/DanielGalvis-Dev/fastexpress-frontend (2026-10-15). Commits con el correo noreply de GitHub, solo en este repo.
+- [x] Git inicializado y repo **privado** creado (2026-10-15). Desde 2026-10-26 es el repo único https://github.com/DanielGalvis-Dev/fastexpress (antes `fastexpress-frontend`; la URL vieja redirige), con el Frontend en `frontend/`. Commits con el correo noreply de GitHub, solo en este repo.
 - [ ] Decidir si el repo pasa a público o se transfiere/comparte con el equipo y el docente (hoy es privado: nadie más lo ve).
-- [ ] Confirmar con el docente que dos repositorios son aceptables (el enunciado dice "un repositorio estructurado").
-- [ ] Conectar el repo a Vercel (previews por rama para QA).
+- [x] Un solo repositorio para todo, como pide el enunciado ("un repositorio estructurado"): `frontend/`, `backend/`, `pruebas/` y `docs/` (2026-10-26).
+- [x] Repo conectado a Vercel con Root Directory `frontend` y variables `VITE_*` en Production y Preview (previews por rama/PR para QA) (2026-10-26).
 - [ ] Decidir si se agregan pruebas E2E (Playwright o Cypress) y CI.
 - [ ] Acordar con QA la convención de `data-testid` (hoy: `peso-input`, `peso-error`, `cliente-select`, `cliente-error`, `envio-estandar`, `envio-express`, `envio-error`, `cotizar-btn`, auth: `login-email-input/-error`, `login-password-input/-error`, `login-btn`, `login-api-error`, `login-aviso`, `registro-{nombre,email,password,confirmacion}-input/-error`, `registro-btn`, `registro-api-error`, `recuperar-{email,codigo,nueva,confirmacion}-input/-error`, `recuperar-enviar-btn`, `recuperar-btn`, `recuperar-api-error`, `cambiar-password-{actual,nueva,confirmacion}-input/-error`, `cambiar-password-btn`, `cambiar-password-api-error`, `usuario-menu-btn`, `usuario-nombre`, `cerrar-sesion-btn`, `ir-a-login/registro/recuperar`, `resultado`, `resultado-total`, `desglose-*`, `api-error`).
 - [ ] Cobertura de pruebas del Frontend y su aporte al informe (la meta de 85 % es del Backend).

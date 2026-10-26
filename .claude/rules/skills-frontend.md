@@ -1,6 +1,6 @@
 # Skills de diseño frontend (React)
 
-Estado: **Impeccable instalado** (v0.1.11, alcance proyecto, sin hooks) en `.claude/skills/impeccable/` y `.claude/agents/`. Falta correr `/impeccable init`. Si el Frontend se crea en un repo separado, repetir `npx impeccable install --providers=claude --scope=project --no-hooks` en la raíz de ese repo.
+Estado: **Impeccable instalado** (v0.1.11, alcance proyecto, sin hooks) en `.claude/skills/impeccable/` y `.claude/agents/`. Falta correr `/impeccable init`. Esos archivos no se versionan (el repo único solo incluye `.claude/CLAUDE.md` y `rules/`): en una máquina nueva, repetir `npx impeccable install --providers=claude --scope=project --no-hooks` en la raíz del repo.
 
 ## 1. frontend-design (Anthropic)
 

@@ -3,9 +3,13 @@
 Interfaz del Módulo de Cotización de Envíos y Descuentos "FastExpress" (Proyecto Integrador, Calidad de Software).
 Consume la API REST del Backend; no calcula tarifas.
 
-**Stack:** React + TypeScript, Vite, Tailwind CSS v4, SweetAlert2, Vitest + React Testing Library, npm. Despliegue previsto: Vercel.
+Esta carpeta es el Frontend del repositorio único de FastExpress (junto a `backend/`, `pruebas/` y `docs/`; ver el [README de la raíz](../README.md)).
+
+**Stack:** React + TypeScript, Vite, Tailwind CSS v4, SweetAlert2, Vitest + React Testing Library, npm. Despliegue: Vercel, con *Root Directory* = `frontend`.
 
 ## Comandos
+
+Se corren desde esta carpeta (`frontend/`):
 
 ```bash
 npm install
@@ -41,4 +45,4 @@ Se definen en `.env.local` (no se commitea); `.env.example` es la plantilla.
 
 Ver [CHANGELOG.md](./CHANGELOG.md) y [PENDIENTES.md](./PENDIENTES.md).
 
-> Nota: no ubicar este proyecto dentro de Google Drive (`H:\Mi unidad`); `npm install` falla ahí con `EBADF`.
+> Nota: no ubicar el repositorio dentro de Google Drive (`H:\Mi unidad`); `npm install` falla ahí con `EBADF`.
