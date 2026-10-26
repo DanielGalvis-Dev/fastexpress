@@ -5,7 +5,7 @@ Fuente de verdad: `docs/enunciado/PROYECTO_INTEGRADOR.docx`.
 
 ## Estructura del repositorio (repo único, 2026-10-26)
 
-Todo lo que pide el profesor vive en un solo repo (`DanielGalvis-Dev/fastexpress-frontend`; el nombre es histórico):
+Todo lo que pide el profesor vive en un solo repo (`DanielGalvis-Dev/fastexpress`, antes `fastexpress-frontend`):
 
 - `frontend/` — React + Vite + Tailwind + TypeScript. Todos los comandos `npm` se corren aquí.
 - `backend/` — API (Google Apps Script) y sus pruebas (`src/`, `tests/unitarias/`, `tests/api/`). Lo sube Backend.
@@ -69,9 +69,9 @@ Ver `.claude/rules/validaciones-ui.md`.
 - Comandos (desde `frontend/`): `npm run dev` · `npm test` · `npm run build` · `npm run lint`
 - URL base de la API: _por definir_ (se configura en `VITE_API_URL`)
 
-## Estado del código (2026-10-23)
+## Estado del código (2026-10-26)
 
-- El repo único vive en **`C:\Users\DG\proyectos\fastexpress-frontend`**, fuera de Google Drive: `npm install` falla en Drive con `EBADF`. La carpeta de Drive del proyecto solo conserva el enunciado y documentación de trabajo. Subido (2026-10-15) a **https://github.com/DanielGalvis-Dev/fastexpress-frontend** (privado, rama `main`). Reestructurado el 2026-10-26: el código del Frontend pasó a `frontend/` y se crearon `backend/`, `pruebas/` y `docs/`.
+- El repo único vive en **`C:\Users\DG\proyectos\fastexpress-frontend`**, fuera de Google Drive: `npm install` falla en Drive con `EBADF`. La carpeta de Drive del proyecto solo conserva el enunciado y documentación de trabajo. Subido (2026-10-15) a **https://github.com/DanielGalvis-Dev/fastexpress** (privado, rama `main`; se llamaba `fastexpress-frontend`). Vercel: proyecto `fastexpress`, Root Directory `frontend`, variables `VITE_*` en Production y Preview. Reestructurado el 2026-10-26: el código del Frontend pasó a `frontend/` y se crearon `backend/`, `pruebas/` y `docs/`.
 - Vista principal: lista de cotizaciones (del historial de la API) con búsqueda y paginación, sin scroll de página: la tabla calcula cuántas filas caben en la altura y pagina según eso; en pantallas angostas se compacta (sin scroll horizontal). El formulario va en un **modal** que abre «Nueva cotización» y muestra el resultado en el mismo modal. SweetAlert2 (envuelto en `src/lib/alertas.ts`) se usa en 3 sitios: confirmar antes de registrar una cotización, avisar cuántas nuevas hay al pulsar «Actualizar», y confirmar el cierre del modal solo si hay datos sin registrar (X, Escape o clic fuera). La validación de campos sigue en línea, sin alertas. Asistente de IA: widget flotante (botón circular abajo a la derecha) conectado a la API real (`action: "chat"`, Gemini) desde 2026-10-15; se activa con `VITE_CHAT=on` (`mock` para demo sin backend) y su contrato está en `frontend/docs/ESPECIFICACION_BACKEND_ASISTENTE_IA.md`. Producción: https://fastexpress-frontend.vercel.app/. **Autenticación (2026-10-23, sin commitear aún):** ingreso obligatorio, registro, recuperación (`forgot`/`reset`), cambio de contraseña y logout contra la API real; sesión en `localStorage`; token enviado en cotizar, chat e historial. El historial se autoriza con una clave fija (`VITE_HISTORIAL_TOKEN`, falta cargarla en Vercel). Versión 0.3.0 (ver `frontend/CHANGELOG.md`). 296 pruebas, build y lint pasan.
 - Contrato de la API **confirmado y probado** contra la API real (POST de cotización y `GET ?action=getHistorial`); ver `.claude/rules/api-contrato.md`. Aislado en `src/api/`.
 - Lista de pendientes: `frontend/PENDIENTES.md`.
