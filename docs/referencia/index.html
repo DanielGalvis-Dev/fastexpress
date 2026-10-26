@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cotizador FastExpress - Pruebas API</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      margin: 30px;
+    }
+    .container {
+      max-width: 500px;
+      background: white;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      margin: 0 auto;
+    }
+    h2 { margin-top: 0; color: #333; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #007bff;
+      color: white;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover { background-color: #0056b3; }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 4px;
+      background-color: #e9ecef;
+    }
+    .error { background-color: #f8d7da; color: #721c24; }
+    .success { background-color: #d4edda; color: #155724; }
+  </style>
+</head>
+<body>
+
+  <iframe src="https://copilotstudio.microsoft.com/environments/Default-b8ea9857-a73b-4e03-9daa-0d39c6bcc284/bots/cr532_agente1_T4OiV1/webchat?__version__=2&enableFileAttachment=false&cliAgent=true" frameborder="0" style="width: 100%; height: 100%; border: 0;"></iframe>
+
+<div class="container">
+  <h2>Cotizador FastExpress</h2>
+  <form id="cotizadorForm">
+    <!-- <div class="form-group">
+      <label for="apiUrl">URL de Web App (Apps Script):</label>
+      <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" required>
+    </div> -->
+
+    <div class="form-group">
+      <label for="peso">Peso (kg):</label>
+      <input type="number" id="peso" step="0.01" placeholder="Ej: 4.5" required>
+    </div>
+
+    <div class="form-group">
+      <label for="tipoCliente">Tipo de Cliente:</label>
+      <select id="tipoCliente">
+        <option value="NUEVO">NUEVO (0% desc)</option>
+        <option value="FRECUENTE">FRECUENTE (10% desc)</option>
+        <option value="VIP">VIP (20% desc)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="tipoEnvio">Tipo de Envío:</label>
+      <select id="tipoEnvio">
+        <option value="ESTANDAR">ESTANDAR (0% recargo)</option>
+        <option value="EXPRESS">EXPRESS (+25% recargo)</option>
+      </select>
+    </div>
+
+    <button type="submit">Calcular Tarifa</button>
+  </form>
+
+  <div id="resultado" class="result" style="display:none;"></div>
+  <div id="historial" style="margin-top:20px; background:#fff; padding:10px; border-radius:5px; border:1px solid #ddd;"></div>
+</div>
+
+<script>
+  // 1. Cargar el historial almacenado apenas cargue la página
+  document.addEventListener('DOMContentLoaded', mostrarHistorialLocal);
+
+  // 2. Escuchar el envío del formulario
+  document.getElementById('cotizadorForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const url = "https://script.google.com/macros/s/AKfycbyROAF9oFSe2pnZPlaar5kCV4qd3ffC3tmIEeCE8YMfGAoI0sREymjDafbaCY-z4Qp9/exec";
+    const peso = parseFloat(document.getElementById('peso').value);
+    const tipoCliente = document.getElementById('tipoCliente').value;
+    const tipoEnvio = document.getElementById('tipoEnvio').value;
+    
+    const resultadoDiv = document.getElementById('resultado');
+    resultadoDiv.style.display = 'block';
+    resultadoDiv.className = 'result';
+    resultadoDiv.innerHTML = 'Calculando...';
+
+    const payload = { peso, tipoCliente, tipoEnvio };
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        resultadoDiv.className = 'result error';
+        resultadoDiv.innerHTML = `<strong>Error:</strong> ${data.mensaje}`;
+      } else {
+        resultadoDiv.className = 'result success';
+        resultadoDiv.innerHTML = `
+          <strong>Cotización Calculada:</strong><br>
+          <ul>
+            <li><strong>Tarifa Base:</strong> $${data.desglose.tarifaBase.toFixed(2)} USD</li>
+            <li><strong>Costo por Peso:</strong> $${data.desglose.costoPeso.toFixed(2)} USD</li>
+            <li><strong>Subtotal:</strong> $${data.desglose.subtotal.toFixed(2)} USD</li>
+            <li><strong>Descuento Aplicado:</strong> -$${data.desglose.descuentoAplicado.toFixed(2)} USD</li>
+            <li><strong>Recargo Aplicado:</strong> +$${data.desglose.recargoAplicado.toFixed(2)} USD</li>
+            <li><strong>TOTAL FINAL:</strong> $${data.desglose.total.toFixed(2)} USD</li>
+          </ul>
+        `;
+
+        // Guardar en el historial local tras respuesta exitosa
+        guardarEnHistorialLocal({
+          fecha: new Date().toLocaleTimeString(),
+          peso,
+          tipoCliente,
+          tipoEnvio,
+          total: data.desglose.total
+        });
+      }
+    } catch (err) {
+      resultadoDiv.className = 'result error';
+      resultadoDiv.innerHTML = `<strong>Error de conexión:</strong> Verifica la URL del despliegue.`;
+    }
+  });
+
+  // 3. Función global para guardar en localStorage (Límite: últimas 5)
+  function guardarEnHistorialLocal(cotizacion) {
+    let historial = JSON.parse(localStorage.getItem('historialCotizaciones')) || [];
+    historial.unshift(cotizacion); // Agregar al inicio de la lista
+    if (historial.length > 5) historial.pop(); // Mantener solo los últimos 5
+
+    localStorage.setItem('historialCotizaciones', JSON.stringify(historial));
+    mostrarHistorialLocal();
+  }
+
+  // 4. Función global para renderizar el historial en pantalla
+  function mostrarHistorialLocal() {
+    let historial = JSON.parse(localStorage.getItem('historialCotizaciones')) || [];
+    const historialDiv = document.getElementById('historial');
+    if (!historialDiv) return;
+
+    if (historial.length === 0) {
+      historialDiv.innerHTML = '<p><small>No hay cotizaciones recientes.</small></p>';
+      return;
+    }
+
+    let html = '<h3>Últimas Cotizaciones</h3><ul>';
+    historial.forEach(item => {
+      html += `<li><small>[${item.fecha}]</small> <strong>$${item.total.toFixed(2)} USD</strong> - ${item.peso}kg | ${item.tipoCliente} | ${item.tipoEnvio}</li>`;
+    });
+    html += '</ul>';
+    historialDiv.innerHTML = html;
+  }
+</script>
+
+</body>
+</html>
