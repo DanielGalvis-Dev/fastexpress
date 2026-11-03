@@ -44,7 +44,7 @@ Los valores BVA coinciden con los sugeridos para la UI: 0.00, 0.01, 0.02, 4.99, 
 
 ## 1.2 Campo Monto
 
-> **Supuesto que el equipo debe confirmar.** El enunciado pide E.P. y BVA para `Peso` y `Monto`, pero no define qué es `Monto`, y ninguna regla (BR-01 a BR-04) usa un monto como dato de entrada. Se interpreta como **el monto total cotizado en USD** (la salida; el historial de la API lo guarda como `totalUSD`). Si el equipo decide que es un campo de entrada, hay que definir primero su regla de negocio.
+> **Definición adoptada.** El enunciado pide E.P. y BVA para `Peso` y `Monto`, pero no define `Monto`. Se verificó en el código (`backend/src/Codigo.js`): ninguna entrada de la API se llama monto, y los únicos montos que existen son calculados (`montoDescuento`, `montoRecargo` y `totalFinal`, devuelto como `desglose.total` y guardado en el historial como `totalUSD`). Por eso **`Monto` es el monto total cotizado en USD**, es decir, la salida de la cotización.
 
 El rango alcanzable del Monto se deduce de las reglas: el **mínimo** es VIP + ESTANDAR con 0.01 kg → 5.02 − 1.00 = **4.02**; el **máximo** es NUEVO + EXPRESS con 20 kg → 85.00 × 1.25 = **106.25**.
 

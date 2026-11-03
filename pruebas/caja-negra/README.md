@@ -10,4 +10,4 @@ Automatización: `backend/tests/unitarias/calcularTarifa.cajaNegra.test.js` y `b
 
 Referencia de valores límite y combinaciones: `.claude/rules/validaciones-ui.md`.
 
-Pendiente del equipo: confirmar qué es `Monto` (el informe lo trata como el total cotizado).
+`Monto` es el total cotizado (`desglose.total`): el código no tiene ningún monto de entrada.
