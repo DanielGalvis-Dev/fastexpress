@@ -4,6 +4,14 @@ Todos los cambios relevantes de este proyecto se documentan aquí. El formato si
 
 ## [Sin publicar]
 
+### Cambiado
+- El repositorio pasa a ser único (`DanielGalvis-Dev/fastexpress`): el Frontend vive en `frontend/`, junto a `backend/`, `pruebas/` y `docs/`. Los comandos `npm` se corren desde `frontend/`.
+
+### Desplegado
+- Proyecto de Vercel `fastexpress` con *Root Directory* `frontend` y las variables `VITE_API_URL`, `VITE_HISTORIAL_TOKEN` y `VITE_CHAT` en Production y Preview.
+
+## [0.3.0] - 2026-10-22
+
 ### Añadido
 - Autenticación contra la API (Apps Script, `action` en el cuerpo): registro, ingreso, recuperación de contraseña en dos pasos (`forgot` + `reset`), cambio de contraseña (`changePassword`) y cierre de sesión (`logout`). Cliente en `src/api/auth.ts`.
 - Ingreso obligatorio: sin sesión solo se ve la pantalla de ingreso/registro/recuperación; con sesión, la lista de cotizaciones y el asistente. Menú de cuenta (inicial de la persona) con «Cambiar contraseña» y «Cerrar sesión».
