@@ -1,0 +1,48 @@
+flowchart TB
+  N1{"1 · D1<br/>typeof peso !== 'number'"}
+  N2{"2 · D2<br/>isNaN(peso)"}
+  N3{"3 · D3<br/>!isFinite(peso)"}
+  N4{"4 · D4<br/>peso <= 0"}
+  N5(["5 · return PESO_INVALIDO<br/>(debe ser número > 0)"])
+  N6{"6 · D5<br/>peso < 0.01"}
+  N7(["7 · return PESO_INVALIDO<br/>(peso mínimo 0.01)"])
+  N8{"8 · D6<br/>peso > 20"}
+  N9(["9 · return PESO_EXCEDIDO"])
+  N10{"10 · D7<br/>peso <= 5"}
+  N11["11 · base = peso × 2.00"]
+  N12["12 · base = peso × 4.00"]
+  N13["13 · costoPeso = redondear2(base)"]
+  N14{"14 · D8<br/>cliente = CLIENTES[tipo]<br/>¿!cliente?"}
+  N15(["15 · return CLIENTE_INVALIDO"])
+  N16{"16 · D9<br/>envio = ENVIOS[tipo]<br/>¿!envio?"}
+  N17(["17 · return ENVIO_INVALIDO"])
+  N18["18 · subtotal, descuento, recargo, total<br/>return success + desglose"]
+  N19((("19 · Fin")))
+
+  N1 -- V --> N5
+  N1 -- F --> N2
+  N2 -- V --> N5
+  N2 -- F --> N3
+  N3 -- V --> N5
+  N3 -- F --> N4
+  N4 -- V --> N5
+  N4 -- F --> N6
+  N6 -- V --> N7
+  N6 -- F --> N8
+  N8 -- V --> N9
+  N8 -- F --> N10
+  N10 -- V --> N11
+  N10 -- F --> N12
+  N11 --> N13
+  N12 --> N13
+  N13 --> N14
+  N14 -- V --> N15
+  N14 -- F --> N16
+  N16 -- V --> N17
+  N16 -- F --> N18
+  N5 --> N19
+  N7 --> N19
+  N9 --> N19
+  N15 --> N19
+  N17 --> N19
+  N18 --> N19

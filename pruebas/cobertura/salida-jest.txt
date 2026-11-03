@@ -1,0 +1,23 @@
+PASS tests/unitarias/herramientasDesarrollo.test.js
+PASS tests/api/cotizacion.api.test.js
+PASS tests/api/chat.test.js
+PASS tests/unitarias/utilidades.test.js
+PASS tests/unitarias/calcularTarifa.caminos.test.js
+PASS tests/unitarias/calcularTarifa.cajaNegra.test.js (7.706 s)
+-----------|---------|----------|---------|---------|-------------------
+File       | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-----------|---------|----------|---------|---------|-------------------
+All files  |    99.5 |    98.03 |     100 |     100 |                   
+ Codigo.js |    99.5 |    98.03 |     100 |     100 | 938-941           
+-----------|---------|----------|---------|---------|-------------------
+=============================== Coverage summary ===============================
+Statements   : 99.5% ( 200/201 )
+Branches     : 98.03% ( 150/153 )
+Functions    : 100% ( 18/18 )
+Lines        : 100% ( 195/195 )
+================================================================================
+Test Suites: 6 passed, 6 total
+Tests:       144 passed, 144 total
+Snapshots:   0 total
+Time:        10.879 s
+Ran all test suites.
