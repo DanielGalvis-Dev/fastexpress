@@ -14,6 +14,6 @@ Documento final de Calidad de Software, con las tres secciones que pide el enunc
 - **Caja blanca:** CFG de `calcularTarifa` con 19 nodos y 27 aristas, **V(G) = 10**, 10 caminos independientes, cada uno con su caso de prueba. Cobertura de aristas 100 %.
 - **Cobertura:** **100 % de líneas y 98 % de ramas** sobre `Codigo.js` (mínimo exigido: 85 %), con 144 pruebas automatizadas.
 
-## Decisión adoptada
+## Decisión del equipo
 
-- **Campo `Monto`:** el enunciado lo menciona pero no lo define. Se verificó en el código que no existe como dato de entrada: es el total cotizado (`desglose.total`, guardado como `totalUSD`). Ver §1.2.
+- **Campo `Monto`:** el enunciado lo menciona pero no lo define. El equipo decidió que es el total cotizado, como salida (`desglose.total`, guardado como `totalUSD`). Ver §1.2.
