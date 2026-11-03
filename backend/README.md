@@ -12,10 +12,26 @@ backend/
 │   ├── Supabase.js      Capa de datos (cliente REST de Supabase)
 │   ├── Login.js         Autenticación (prefijo auth*)
 │   └── appsscript.json  Manifiesto del proyecto (zona horaria, runtime V8, web app)
-└── tests/
-    ├── unitarias/       Pruebas de la función de cálculo (pendiente)
-    └── api/             Pruebas de endpoints y del contrato (pendiente)
+├── tests/
+│   ├── unitarias/       Caja negra y caja blanca de calcularTarifa, utilidades y herramientas
+│   ├── api/             doGet, doPost, cotización y chat con IA (servicios simulados)
+│   └── helpers/         Simulación de Apps Script y transformador de Jest
+├── jest.config.js       Configuración de Jest y umbral de cobertura (85 %)
+└── package.json         Scripts: npm test · npm run coverage
 ```
+
+## Pruebas
+
+```
+cd backend
+npm install
+npm test               # 144 pruebas
+npm run coverage       # + cobertura; falla si líneas o ramas < 85 %
+```
+
+Resultado actual sobre `src/Codigo.js`: **100 % de líneas y 98 % de ramas**. El código de `src/` no se modifica para probarlo: un transformador de Jest añade el `module.exports` solo en memoria. Detalle y evidencias en `docs/informe-tecnico/` y `pruebas/`.
+
+Las pruebas no tocan servicios reales: Supabase, Gemini y los servicios de Google están simulados.
 
 El código es una copia exacta del proyecto de Apps Script, descargada con `clasp`.
 En Apps Script los archivos se llaman `Código.gs`, `Supabase.gs` y `Login.gs`; aquí llevan extensión `.js`, que es la que usa `clasp`.
@@ -73,6 +89,5 @@ Lo que está en ejecución es el proyecto de Apps Script; este repo es su copia 
 
 ## Pendiente de completar por Backend
 
-- Extraer `calcularTarifa` a una función aislada y testeable (hoy vive junto al resto de `Codigo.js`).
-- `package.json` con la suite de pruebas (Jest o equivalente) y script de cobertura (`npm test`, `npm run coverage`); mínimo 85 % de líneas y ramas.
+- Cubrir también `Login.js` y `Supabase.js` con pruebas (hoy la medición de cobertura es solo sobre `Codigo.js`).
 - Cómo desplegar la web app y dónde queda la URL (el Frontend la lee de `VITE_API_URL`).

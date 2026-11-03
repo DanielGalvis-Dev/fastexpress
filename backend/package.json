@@ -1,0 +1,13 @@
+{
+  "name": "fastexpress-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pruebas automatizadas del Backend de FastExpress (Google Apps Script)",
+  "scripts": {
+    "test": "jest",
+    "coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
